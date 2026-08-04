@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Intake Log</title>
+<style>
+  :root{
+    --bone:#E9E5DA; --panel:#F2EFE7; --slate:#2F3740; --slate-2:#6E7883;
+    --hair:#C7C0AF; --mustard:#BF8A1F; --mustard-hi:#DCAE45; --teal:#245E6E; --rust:#A2452A;
+    --mono: ui-monospace,"SF Mono","IBM Plex Mono",Menlo,Consolas,monospace;
+    --sans: "Avenir Next","Segoe UI",system-ui,-apple-system,Helvetica,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{background:var(--bone);color:var(--slate);font-family:var(--sans);font-size:15px;
+    line-height:1.4;padding:0 0 44px;max-width:560px;margin:0 auto}
+  button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:none}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  input{font-family:var(--mono);font-size:15px;color:var(--slate);background:var(--panel);
+    border:1px solid var(--hair);border-radius:2px;padding:9px 10px;width:100%}
+  .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--slate-2)}
+  header{padding:18px 18px 13px;display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--hair)}
+  header h1{margin:0;font-size:15px;font-weight:600}
+  section{padding:18px;border-bottom:1px solid var(--hair)}
+  .warn{background:#F6E3DC;border-bottom:1px solid var(--hair);padding:10px 18px;
+    font-size:12.5px;color:#7A2F1B;display:none}
+
+  .gauge{display:flex;gap:20px;align-items:flex-end}
+  .column{position:relative;width:74px;height:290px;flex:none;background:var(--panel);
+    border:1px solid var(--hair);border-radius:2px;display:flex;flex-direction:column-reverse;overflow:hidden}
+  .stratum{position:relative;width:100%;background:var(--mustard-hi);
+    border-top:1px solid rgba(47,55,64,.22);min-height:2px;transition:height .28s ease}
+  .stratum .p{position:absolute;left:0;top:0;bottom:0;background:var(--teal)}
+  .targetline{position:absolute;left:0;right:0;bottom:76.9%;border-top:1px dashed var(--slate);z-index:3;pointer-events:none}
+  .targetline span{position:absolute;right:2px;top:-13px;font-family:var(--mono);font-size:9px;
+    color:var(--slate);background:var(--panel);padding:0 3px}
+  .readout{flex:1;min-width:0}
+  .big{font-family:var(--mono);font-size:38px;line-height:.95;letter-spacing:-.03em;font-weight:600}
+  .big small{font-size:12px;letter-spacing:.1em;font-weight:400;color:var(--slate-2);margin-left:6px}
+  .verdict{margin-top:7px;font-size:13px;color:var(--slate-2)}
+  .verdict b{color:var(--slate)}
+  .track{height:9px;background:var(--panel);border:1px solid var(--hair);border-radius:2px;overflow:hidden;margin-top:5px}
+  .fill{height:100%;background:var(--teal);transition:width .28s ease}
+  .row-between{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .macros{margin-top:16px;display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--slate-2)}
+  .macros b{color:var(--slate);font-size:13px}
+
+  .cats{display:flex;gap:6px;overflow-x:auto;margin-top:12px;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .cat{flex:none;border:1px solid var(--hair);border-radius:2px;padding:6px 11px;
+    font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--slate-2);white-space:nowrap}
+  .cat[aria-pressed="true"]{background:var(--slate);color:var(--panel);border-color:var(--slate)}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(102px,1fr));gap:7px;margin-top:11px}
+  .tile{background:var(--panel);border:1px solid var(--hair);border-radius:2px;padding:9px;text-align:left;transition:transform .08s}
+  .tile:active{transform:scale(.97)}
+  .tile .n{font-size:12.5px;line-height:1.25;font-weight:600;display:-webkit-box;
+    -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:31px}
+  .tile .s{font-size:10px;color:var(--slate-2);margin-top:3px;line-height:1.2;
+    display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+  .tile .m{font-family:var(--mono);font-size:10px;color:var(--slate-2);margin-top:5px}
+  .none{font-size:13px;color:var(--slate-2);padding:14px 0}
+
+  .entry{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid rgba(199,192,175,.55)}
+  .entry:last-child{border-bottom:none}
+  .entry .nm{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .entry .kc{font-family:var(--mono);font-size:13px}
+  .entry .pr{font-family:var(--mono);font-size:11px;color:var(--teal);width:42px;text-align:right}
+  .del{font-family:var(--mono);font-size:16px;color:var(--slate-2);padding:2px 5px;line-height:1}
+  .empty{font-size:13.5px;color:var(--slate-2);padding:6px 0 2px}
+
+  .week{display:flex;gap:6px;align-items:flex-end;height:84px;margin-top:14px}
+  .day{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end}
+  .barwrap{position:relative;width:100%;flex:1;display:flex;align-items:flex-end}
+  .bar{width:100%;background:var(--mustard-hi);border:1px solid var(--hair);border-bottom:none;border-radius:2px 2px 0 0;min-height:2px}
+  .bar.hit{background:var(--teal);border-color:var(--teal)}
+  .day .lbl{font-family:var(--mono);font-size:9px;color:var(--slate-2)}
+  .marker{position:absolute;left:0;right:0;border-top:1px dashed var(--slate-2);opacity:.75}
+  .stat{display:flex;gap:22px;margin-top:15px;flex-wrap:wrap}
+  .stat div span{display:block;font-family:var(--mono);font-size:20px;margin-top:3px;font-weight:600}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}
+  label.f{display:block}
+  label.f .eyebrow{display:block;margin-bottom:4px}
+  .btn{background:var(--slate);color:var(--panel);border-radius:2px;padding:11px 14px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;width:100%;margin-top:11px}
+  .btn.ghost{background:none;border:1px solid var(--hair);color:var(--slate)}
+  details summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+  details summary::-webkit-details-marker{display:none}
+  details summary .chev{font-family:var(--mono);font-size:11px;color:var(--slate-2)}
+  .note{font-size:12.5px;color:var(--slate-2);margin-top:12px;line-height:1.5}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header><h1>Intake Log</h1><span class="eyebrow" id="today-date">—</span></header>
+<div class="warn" id="warn">Saving failed — your browser is blocking local storage. Turn off private browsing, or allow site data for this page.</div>
+
+<section>
+  <div class="gauge">
+    <div class="column" id="column"><div class="targetline"><span id="tl-label">2800</span></div></div>
+    <div class="readout">
+      <div class="eyebrow">Calories</div>
+      <div class="big"><span id="kcal">0</span><small>KCAL</small></div>
+      <div class="verdict" id="verdict">—</div>
+      <div style="margin-top:16px">
+        <div class="row-between"><span class="eyebrow">Protein</span><span class="eyebrow" id="p-text">0 / 120 g</span></div>
+        <div class="track"><div class="fill" id="p-fill" style="width:0%"></div></div>
+      </div>
+      <div class="macros">
+        <span>CARBS <b id="m-c">0</b>g</span><span>FAT <b id="m-f">0</b>g</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="row-between"><span class="eyebrow">Quick add</span><span class="eyebrow" id="lib-count"></span></div>
+  <input id="search" placeholder="Search foods…" style="margin-top:11px" autocomplete="off">
+  <div class="cats" id="cats"></div>
+  <div class="tiles" id="tiles"></div>
+  <div class="none" id="no-results" style="display:none">Nothing matches. Add it under “Add a food” below and it becomes a tile.</div>
+</section>
+
+<section>
+  <div class="row-between"><span class="eyebrow">Logged today</span><span class="eyebrow" id="count">0 items</span></div>
+  <div id="log"></div>
+</section>
+
+<section>
+  <span class="eyebrow">Last 7 days</span>
+  <div class="week" id="week"></div>
+  <div class="stat">
+    <div><span class="eyebrow">Daily average</span><span id="avg">—</span></div>
+    <div><span class="eyebrow">Days on target</span><span id="hits">—</span></div>
+  </div>
+  <div class="note" id="week-note"></div>
+</section>
+
+<section>
+  <details><summary><span class="eyebrow">Weekly weigh-in</span><span class="chev">›</span></summary>
+    <div class="grid2">
+      <label class="f"><span class="eyebrow">Weight (kg)</span><input id="w-kg" type="number" step="0.1" inputmode="decimal" placeholder="61.6"></label>
+      <label class="f"><span class="eyebrow">Date</span><input id="w-date" type="date"></label>
+    </div>
+    <button class="btn" id="w-save">Save weigh-in</button>
+    <div id="w-list" class="note"></div>
+  </details>
+</section>
+
+<section>
+  <details><summary><span class="eyebrow">Add a food</span><span class="chev">›</span></summary>
+    <label class="f" style="margin-top:10px"><span class="eyebrow">Name</span><input id="f-name" placeholder="Chicken wrap"></label>
+    <label class="f" style="margin-top:9px"><span class="eyebrow">Serving</span><input id="f-serv" placeholder="1 wrap"></label>
+    <div class="grid4">
+      <label class="f"><span class="eyebrow">Kcal</span><input id="f-k" type="number" inputmode="numeric"></label>
+      <label class="f"><span class="eyebrow">P</span><input id="f-p" type="number" inputmode="numeric"></label>
+      <label class="f"><span class="eyebrow">C</span><input id="f-c" type="number" inputmode="numeric"></label>
+      <label class="f"><span class="eyebrow">F</span><input id="f-f" type="number" inputmode="numeric"></label>
+    </div>
+    <button class="btn" id="f-save">Save to quick add</button>
+  </details>
+</section>
+
+<section style="border-bottom:none">
+  <details><summary><span class="eyebrow">Targets</span><span class="chev">›</span></summary>
+    <div class="grid2">
+      <label class="f"><span class="eyebrow">Calories</span><input id="t-k" type="number" inputmode="numeric"></label>
+      <label class="f"><span class="eyebrow">Protein (g)</span><input id="t-p" type="number" inputmode="numeric"></label>
+    </div>
+    <button class="btn ghost" id="t-save">Update targets</button>
+    <button class="btn ghost" id="export">Export my data</button>
+    <div class="note">Targets are floors, not ceilings. The failure mode is landing under, day after day, without noticing.</div>
+  </details>
+</section>
+
+<script>
+const KEY='intake:v2';
+const CATS=['Meals','Meat & fish','Dairy & eggs','Carbs','Fruit','Veg','Nuts & seeds','Snacks','Drinks','Eating out'];
+const SEED=[
+ // Meals
+ {n:'Bulk smoothie',s:'2 banana, 80g oats, 1 scoop Diet Protein, 250ml semi milk, 1 tbsp oil',k:865,p:42,c:121,f:26,g:'Meals'},
+ {n:'Smoothie, no oil',s:'2 banana, 80g oats, protein, semi milk — no oil',k:746,p:42,c:121,f:12,g:'Meals'},
+ {n:'Porridge',s:'80g oats + 250ml whole milk',k:468,p:19,c:66,f:15,g:'Meals'},
+ {n:'Overnight oats',s:'60g oats, yogurt, banana, PB',k:620,p:26,c:70,f:26,g:'Meals'},
+ {n:'Yogurt bowl',s:'250g Greek, banana, berries, seeds',k:520,p:28,c:52,f:20,g:'Meals'},
+ {n:'Roast chicken dinner',s:'chicken, roasties, veg, gravy',k:750,p:45,c:60,f:24,g:'Meals'},
+ {n:'Chicken & rice',s:'150g chicken, 250g rice, oil',k:690,p:50,c:71,f:19,g:'Meals'},
+ {n:'Mince pasta bake',s:'200g mince, 250g pasta, cheese',k:900,p:52,c:80,f:36,g:'Meals'},
+ {n:'Chicken curry & rice',s:'jar sauce, chicken, 250g rice',k:820,p:45,c:88,f:28,g:'Meals'},
+ {n:'Scrambled eggs on toast',s:'4 eggs, 2 slices, butter',k:640,p:33,c:35,f:38,g:'Meals'},
+ {n:'Chilli & rice',s:'mince, beans, 250g rice',k:780,p:44,c:88,f:24,g:'Meals'},
+ {n:'Stir fry',s:'chicken, noodles, veg, oil',k:700,p:42,c:75,f:22,g:'Meals'},
+ {n:'Jacket potato & beans',s:'large potato, beans, cheese',k:620,p:26,c:92,f:15,g:'Meals'},
+ {n:'Full breakfast',s:'eggs, bacon, beans, toast',k:780,p:38,c:52,f:44,g:'Meals'},
+ // Meat & fish
+ {n:'Chicken breast',s:'150g cooked',k:250,p:47,c:0,f:5,g:'Meat & fish'},
+ {n:'Chicken thigh',s:'1 with skin, ~80g',k:170,p:20,c:0,f:10,g:'Meat & fish'},
+ {n:'Chicken drumstick',s:'1 with skin',k:130,p:15,c:0,f:8,g:'Meat & fish'},
+ {n:'Beef mince 5%',s:'200g raw',k:260,p:42,c:0,f:10,g:'Meat & fish'},
+ {n:'Beef mince 20%',s:'200g raw',k:500,p:36,c:0,f:40,g:'Meat & fish'},
+ {n:'Steak',s:'200g sirloin',k:420,p:52,c:0,f:24,g:'Meat & fish'},
+ {n:'Pork chop',s:'150g',k:300,p:38,c:0,f:16,g:'Meat & fish'},
+ {n:'Bacon',s:'2 rashers grilled',k:130,p:11,c:0,f:9,g:'Meat & fish'},
+ {n:'Sausages',s:'2 pork',k:280,p:14,c:8,f:22,g:'Meat & fish'},
+ {n:'Hot dogs',s:'2 + brioche rolls',k:712,p:33,c:51,f:41,g:'Meat & fish'},
+ {n:'Ham',s:'4 slices',k:110,p:18,c:1,f:4,g:'Meat & fish'},
+ {n:'Salmon fillet',s:'130g',k:270,p:30,c:0,f:16,g:'Meat & fish'},
+ {n:'Mackerel',s:'1 fillet, 100g',k:260,p:19,c:0,f:20,g:'Meat & fish'},
+ {n:'Tuna steak',s:'150g',k:200,p:42,c:0,f:2,g:'Meat & fish'},
+ {n:'Tuna, tinned',s:'1 tin drained',k:116,p:26,c:0,f:1,g:'Meat & fish'},
+ {n:'Cod fillet',s:'150g',k:130,p:29,c:0,f:1,g:'Meat & fish'},
+ {n:'Prawns',s:'150g cooked',k:150,p:32,c:0,f:2,g:'Meat & fish'},
+ // Dairy & eggs
+ {n:'Egg',s:'1 large',k:72,p:6,c:0,f:5,g:'Dairy & eggs'},
+ {n:'Eggs',s:'2 large',k:144,p:13,c:1,f:10,g:'Dairy & eggs'},
+ {n:'Greek yogurt',s:'200g strained, 10g protein/100g',k:230,p:20,c:8,f:12,g:'Dairy & eggs'},
+ {n:'Greek STYLE yogurt',s:'200g — half the protein',k:204,p:8,c:9,f:15,g:'Dairy & eggs'},
+ {n:'Skyr',s:'150g pot',k:95,p:17,c:6,f:0,g:'Dairy & eggs'},
+ {n:'Cottage cheese',s:'200g',k:200,p:24,c:6,f:8,g:'Dairy & eggs'},
+ {n:'Whole milk',s:'250ml',k:158,p:8,c:12,f:9,g:'Dairy & eggs'},
+ {n:'Semi-skimmed milk',s:'250ml',k:125,p:9,c:12,f:4,g:'Dairy & eggs'},
+ {n:'Cheddar',s:'30g',k:124,p:8,c:0,f:10,g:'Dairy & eggs'},
+ {n:'Mozzarella',s:'50g',k:150,p:11,c:1,f:11,g:'Dairy & eggs'},
+ {n:'Butter',s:'10g',k:74,p:0,c:0,f:8,g:'Dairy & eggs'},
+ // Carbs
+ {n:'Rice',s:'250g cooked',k:325,p:7,c:71,f:1,g:'Carbs'},
+ {n:'Pasta',s:'250g cooked',k:400,p:14,c:78,f:2,g:'Carbs'},
+ {n:'Potatoes, boiled',s:'300g',k:260,p:6,c:60,f:0,g:'Carbs'},
+ {n:'Roast potatoes',s:'220g',k:330,p:5,c:45,f:15,g:'Carbs'},
+ {n:'Chips',s:'200g oven',k:320,p:5,c:48,f:12,g:'Carbs'},
+ {n:'Oats',s:'80g dry',k:310,p:11,c:54,f:6,g:'Carbs'},
+ {n:'Bread',s:'2 slices wholemeal',k:180,p:8,c:32,f:2,g:'Carbs'},
+ {n:'Bagel',s:'1 plain',k:250,p:10,c:48,f:2,g:'Carbs'},
+ {n:'Wrap',s:'1 large tortilla',k:220,p:6,c:38,f:5,g:'Carbs'},
+ {n:'Noodles',s:'1 nest cooked',k:230,p:8,c:46,f:2,g:'Carbs'},
+ {n:'Couscous',s:'200g cooked',k:230,p:8,c:46,f:0,g:'Carbs'},
+ {n:'Weetabix',s:'2 + 150ml milk',k:229,p:9,c:34,f:6,g:'Carbs'},
+ {n:'Granola',s:'60g',k:270,p:6,c:36,f:11,g:'Carbs'},
+ {n:'Yorkshire pudding',s:'1',k:60,p:2,c:7,f:3,g:'Carbs'},
+ {n:'Naan',s:'1 plain',k:300,p:9,c:50,f:7,g:'Carbs'},
+ {n:'Baked beans',s:'200g',k:155,p:10,c:26,f:1,g:'Carbs'},
+ {n:'Lentils',s:'200g cooked',k:230,p:18,c:38,f:1,g:'Carbs'},
+ {n:'Chickpeas',s:'200g tin drained',k:240,p:14,c:36,f:4,g:'Carbs'},
+ // Fruit
+ {n:'Banana',s:'1 medium',k:105,p:1,c:27,f:0,g:'Fruit'},
+ {n:'Apple',s:'1 medium',k:95,p:0,c:25,f:0,g:'Fruit'},
+ {n:'Orange',s:'1 medium',k:62,p:1,c:15,f:0,g:'Fruit'},
+ {n:'Raspberries',s:'80g',k:42,p:1,c:9,f:1,g:'Fruit'},
+ {n:'Blueberries',s:'80g',k:46,p:1,c:11,f:0,g:'Fruit'},
+ {n:'Strawberries',s:'100g',k:33,p:1,c:8,f:0,g:'Fruit'},
+ {n:'Frozen berry mix',s:'100g',k:50,p:1,c:11,f:0,g:'Fruit'},
+ {n:'Grapes',s:'100g',k:69,p:1,c:18,f:0,g:'Fruit'},
+ {n:'Mango',s:'150g',k:90,p:1,c:22,f:0,g:'Fruit'},
+ {n:'Pineapple',s:'150g',k:75,p:1,c:20,f:0,g:'Fruit'},
+ {n:'Kiwi',s:'2',k:84,p:2,c:20,f:1,g:'Fruit'},
+ {n:'Pear',s:'1 medium',k:100,p:1,c:27,f:0,g:'Fruit'},
+ {n:'Avocado',s:'half',k:160,p:2,c:9,f:15,g:'Fruit'},
+ {n:'Dates',s:'3 medjool',k:200,p:1,c:54,f:0,g:'Fruit'},
+ {n:'Raisins',s:'40g',k:120,p:1,c:32,f:0,g:'Fruit'},
+ // Veg
+ {n:'Broccoli',s:'100g',k:35,p:3,c:4,f:0,g:'Veg'},
+ {n:'Courgette',s:'100g',k:20,p:1,c:3,f:0,g:'Veg'},
+ {n:'Carrots',s:'100g',k:41,p:1,c:10,f:0,g:'Veg'},
+ {n:'Peas',s:'100g',k:81,p:5,c:14,f:0,g:'Veg'},
+ {n:'Spinach',s:'100g',k:23,p:3,c:1,f:0,g:'Veg'},
+ {n:'Mixed veg',s:'150g',k:75,p:4,c:12,f:1,g:'Veg'},
+ {n:'Salad',s:'bowl, no dressing',k:40,p:2,c:6,f:0,g:'Veg'},
+ {n:'Sweetcorn',s:'100g',k:96,p:3,c:19,f:1,g:'Veg'},
+ {n:'Mushrooms',s:'100g fried',k:90,p:3,c:3,f:8,g:'Veg'},
+ // Nuts & seeds
+ {n:'Peanut butter',s:'2 tbsp / 30g',k:180,p:8,c:6,f:15,g:'Nuts & seeds'},
+ {n:'Almonds',s:'30g',k:174,p:6,c:6,f:15,g:'Nuts & seeds'},
+ {n:'Walnuts',s:'30g',k:196,p:5,c:4,f:20,g:'Nuts & seeds'},
+ {n:'Cashews',s:'30g',k:166,p:5,c:9,f:13,g:'Nuts & seeds'},
+ {n:'Mixed nuts',s:'30g',k:180,p:5,c:6,f:16,g:'Nuts & seeds'},
+ {n:'Pine nuts',s:'15g',k:100,p:2,c:2,f:10,g:'Nuts & seeds'},
+ {n:'Chia seeds',s:'1 tbsp / 12g',k:58,p:2,c:5,f:4,g:'Nuts & seeds'},
+ {n:'Flaxseed',s:'1 tbsp',k:55,p:2,c:3,f:4,g:'Nuts & seeds'},
+ {n:'Pumpkin seeds',s:'30g',k:170,p:9,c:4,f:14,g:'Nuts & seeds'},
+ {n:'Sunflower seeds',s:'30g',k:175,p:6,c:6,f:15,g:'Nuts & seeds'},
+ {n:'Olive oil',s:'1 tbsp',k:119,p:0,c:0,f:14,g:'Nuts & seeds'},
+ // Snacks
+ {n:'Whey shake, water',s:'1 scoop',k:120,p:24,c:3,f:2,g:'Snacks'},
+ {n:'Whey in milk',s:'1 scoop + 300ml whole',k:310,p:34,c:17,f:12,g:'Snacks'},
+ {n:'Protein bar',s:'1',k:220,p:20,c:22,f:7,g:'Snacks'},
+ {n:'Flapjack',s:'1',k:280,p:4,c:38,f:13,g:'Snacks'},
+ {n:'Crisps',s:'1 grab bag',k:180,p:2,c:18,f:11,g:'Snacks'},
+ {n:'Chocolate bar',s:'1 standard',k:250,p:3,c:30,f:13,g:'Snacks'},
+ {n:'Biscuits',s:'3 digestives',k:210,p:3,c:28,f:9,g:'Snacks'},
+ {n:'Ice cream',s:'2 scoops',k:230,p:4,c:26,f:12,g:'Snacks'},
+ {n:'Toast & peanut butter',s:'2 slices',k:540,p:18,c:44,f:32,g:'Snacks'},
+ {n:'Cereal bar',s:'1',k:120,p:2,c:20,f:4,g:'Snacks'},
+ // Drinks
+ {n:'Orange juice',s:'250ml',k:110,p:2,c:26,f:0,g:'Drinks'},
+ {n:'Chocolate milk',s:'500ml',k:320,p:17,c:45,f:8,g:'Drinks'},
+ {n:'Latte',s:'regular, whole milk',k:150,p:8,c:13,f:8,g:'Drinks'},
+ {n:'Coffee, black',s:'1 mug',k:2,p:0,c:0,f:0,g:'Drinks'},
+ {n:'Tea with milk',s:'1 mug',k:20,p:1,c:2,f:1,g:'Drinks'},
+ {n:'Beer',s:'1 pint',k:180,p:2,c:14,f:0,g:'Drinks'},
+ {n:'Irn-Bru',s:'330ml can',k:70,p:0,c:17,f:0,g:'Drinks'},
+ {n:'Lucozade',s:'380ml',k:135,p:0,c:32,f:0,g:'Drinks'},
+ // Eating out
+ {n:'Chicken shop meal',s:'quarter chicken, chips',k:900,p:45,c:70,f:45,g:'Eating out'},
+ {n:'Pizza',s:'half a 12in',k:800,p:32,c:88,f:32,g:'Eating out'},
+ {n:'Chicken burrito',s:'1 large',k:900,p:45,c:100,f:32,g:'Eating out'},
+ {n:'McDonalds Big Mac meal',s:'medium',k:1080,p:32,c:130,f:45,g:'Eating out'},
+ {n:'Chippy fish supper',s:'fish + chips',k:1100,p:40,c:110,f:55,g:'Eating out'},
+ {n:'Indian takeaway',s:'curry, rice, naan',k:1300,p:50,c:140,f:55,g:'Eating out'},
+ {n:'Chinese takeaway',s:'main + fried rice',k:1150,p:45,c:130,f:45,g:'Eating out'},
+ {n:'Subway footlong',s:'chicken',k:700,p:46,c:90,f:16,g:'Eating out'},
+ {n:'Meal deal',s:'sandwich, crisps, drink',k:750,p:25,c:90,f:28,g:'Eating out'}
+];
+
+let S={targets:{k:2800,p:120},library:SEED,days:{},weights:[]};
+let activeCat='All';
+const $=id=>document.getElementById(id);
+const iso=d=>{const x=d||new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
+const todayKey=()=>iso();
+
+function load(){
+  let saved=null;
+  try{
+    const v=localStorage.getItem(KEY);
+    if(v) saved=JSON.parse(v);
+  }catch(e){ console.warn('could not read saved data:',e&&e.message); }
+  if(saved){
+    if(saved.targets) S.targets=saved.targets;
+    if(saved.days) S.days=saved.days;
+    if(saved.weights) S.weights=saved.weights;
+    S.library=(saved.custom||[]).concat(SEED);
+  }else{
+    S.library=SEED.slice();
+  }
+  render();
+}
+
+function save(){
+  try{
+    const seedNames=new Set(SEED.map(f=>f.n));
+    localStorage.setItem(KEY,JSON.stringify({
+      targets:S.targets,
+      days:S.days,
+      weights:S.weights,
+      custom:S.library.filter(f=>!seedNames.has(f.n))
+    }));
+    $('warn').style.display='none';
+  }catch(e){
+    $('warn').style.display='block';
+    console.warn('save failed:',e&&e.message);
+  }
+}
+
+function exportData(){
+  const blob=new Blob([localStorage.getItem(KEY)||'{}'],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='intake-log-'+todayKey()+'.json';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+const entries=k=>S.days[k||todayKey()]||[];
+const totals=l=>l.reduce((a,e)=>({k:a.k+e.k,p:a.p+e.p,c:a.c+e.c,f:a.f+e.f}),{k:0,p:0,c:0,f:0});
+const esc=s=>String(s).replace(/[<>&]/g,m=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[m]));
+
+function render(){
+  $('today-date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+  $('t-k').value=S.targets.k; $('t-p').value=S.targets.p;
+  $('tl-label').textContent=S.targets.k; $('w-date').value=todayKey();
+  renderCats(); renderGauge(); renderTiles(); renderLog(); renderWeek(); renderWeights();
+}
+
+function renderCats(){
+  const box=$('cats'); box.innerHTML='';
+  ['All',...CATS].forEach(c=>{
+    const b=document.createElement('button');
+    b.className='cat'; b.textContent=c; b.setAttribute('aria-pressed',c===activeCat);
+    b.onclick=()=>{activeCat=c;renderCats();renderTiles()};
+    box.appendChild(b);
+  });
+}
+
+function renderGauge(){
+  const list=entries(),t=totals(list),T=S.targets;
+  $('kcal').textContent=t.k.toLocaleString();
+  const left=T.k-t.k;
+  $('verdict').innerHTML=left>0?'<b>'+left.toLocaleString()+'</b> to go':'<b>'+Math.abs(left).toLocaleString()+'</b> over target';
+  $('p-text').textContent=Math.round(t.p)+' / '+T.p+' g';
+  $('p-fill').style.width=Math.min(100,Math.round(t.p/T.p*100))+'%';
+  $('m-c').textContent=Math.round(t.c); $('m-f').textContent=Math.round(t.f);
+  const col=$('column');
+  [...col.querySelectorAll('.stratum')].forEach(n=>n.remove());
+  const scale=T.k*1.3;
+  list.forEach(e=>{
+    const s=document.createElement('div'); s.className='stratum';
+    s.style.height=Math.max(0.7,(e.k/scale)*100)+'%';
+    const inner=document.createElement('div'); inner.className='p';
+    inner.style.width=(e.k>0?Math.min(1,(e.p*4)/e.k):0)*100+'%';
+    s.appendChild(inner); s.title=e.n; col.appendChild(s);
+  });
+}
+
+function renderTiles(){
+  const q=$('search').value.trim().toLowerCase();
+  const list=S.library.filter(f=>{
+    const inCat=activeCat==='All'||f.g===activeCat;
+    const inQ=!q||f.n.toLowerCase().includes(q)||(f.s||'').toLowerCase().includes(q);
+    return inCat&&inQ;
+  });
+  $('lib-count').textContent=list.length+' foods';
+  $('no-results').style.display=list.length?'none':'block';
+  const box=$('tiles'); box.innerHTML='';
+  list.forEach(f=>{
+    const b=document.createElement('button'); b.className='tile';
+    b.innerHTML='<div class="n">'+esc(f.n)+'</div><div class="s">'+esc(f.s||'')+'</div><div class="m">'+f.k+' · '+f.p+'P</div>';
+    b.setAttribute('aria-label','Add '+f.n);
+    b.onclick=()=>addEntry(f);
+    box.appendChild(b);
+  });
+}
+
+function renderLog(){
+  const list=entries(),box=$('log');
+  $('count').textContent=list.length+(list.length===1?' item':' items');
+  if(!list.length){box.innerHTML='<div class="empty">Nothing logged yet. Tap a food above to start the day.</div>';return}
+  box.innerHTML='';
+  list.forEach((e,i)=>{
+    const r=document.createElement('div'); r.className='entry';
+    r.innerHTML='<span class="nm">'+esc(e.n)+'</span><span class="kc">'+e.k+'</span><span class="pr">'+e.p+'g</span>';
+    const x=document.createElement('button'); x.className='del'; x.textContent='×';
+    x.setAttribute('aria-label','Remove '+e.n);
+    x.onclick=()=>{S.days[todayKey()].splice(i,1);save();renderGauge();renderLog();renderWeek()};
+    r.appendChild(x); box.appendChild(r);
+  });
+}
+
+function renderWeek(){
+  const box=$('week'); box.innerHTML='';
+  const days=[],T=S.targets.k;
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=iso(d);
+    days.push({lbl:d.toLocaleDateString('en-GB',{weekday:'narrow'}),kcal:totals(entries(k)).k})}
+  const max=Math.max(T*1.15,...days.map(d=>d.kcal),1);
+  days.forEach(d=>{
+    const el=document.createElement('div'); el.className='day';
+    const wrap=document.createElement('div'); wrap.className='barwrap';
+    const mk=document.createElement('div'); mk.className='marker'; mk.style.bottom=(T/max*100)+'%'; wrap.appendChild(mk);
+    const bar=document.createElement('div'); bar.className='bar'+(d.kcal>=T?' hit':'');
+    bar.style.height=Math.max(1,d.kcal/max*100)+'%'; bar.title=d.kcal+' kcal'; wrap.appendChild(bar);
+    const lb=document.createElement('div'); lb.className='lbl'; lb.textContent=d.lbl;
+    el.appendChild(wrap); el.appendChild(lb); box.appendChild(el);
+  });
+  const logged=days.filter(d=>d.kcal>0);
+  const avg=logged.length?Math.round(logged.reduce((a,d)=>a+d.kcal,0)/logged.length):0;
+  $('avg').textContent=logged.length?avg.toLocaleString():'—';
+  $('hits').textContent=days.filter(d=>d.kcal>=T).length+' / '+logged.length;
+  let note='';
+  if(logged.length<3) note='Log three full days before reading anything into the average.';
+  else if(avg<S.targets.k-250) note='The average is well under target. That gap, not the training, is why the scale is flat.';
+  else if(avg<S.targets.k) note='Close, but consistently short. An extra shake or handful of nuts covers it.';
+  else note='Average is at or above target. If weight is still flat after two weeks, raise the target by 200.';
+  $('week-note').textContent=note;
+}
+
+function renderWeights(){
+  const box=$('w-list');
+  if(!S.weights.length){box.textContent='No weigh-ins yet. One a week, same morning, same conditions.';return}
+  const w=[...S.weights].sort((a,b)=>a.d<b.d?1:-1).slice(0,6);
+  let html='<div style="margin-top:12px">';
+  w.forEach((e,i)=>{const prev=w[i+1];const diff=prev?(e.kg-prev.kg):null;
+    const tag=diff===null?'':(diff>=0?'+':'')+diff.toFixed(1);
+    html+='<div class="entry"><span class="nm">'+e.d+'</span><span class="kc">'+e.kg.toFixed(1)+' kg</span><span class="pr">'+tag+'</span></div>'});
+  box.innerHTML=html+'</div>';
+}
+
+function addEntry(f){
+  const k=todayKey();
+  if(!S.days[k]) S.days[k]=[];
+  S.days[k].push({n:f.n,k:+f.k,p:+f.p,c:+f.c,f:+f.f});
+  save(); renderGauge(); renderLog(); renderWeek();
+}
+
+$('search').oninput=renderTiles;
+$('f-save').onclick=()=>{
+  const n=$('f-name').value.trim(),k=+$('f-k').value;
+  if(!n||!k){$('f-name').focus();return}
+  S.library.unshift({n,s:$('f-serv').value.trim(),k,p:+$('f-p').value||0,c:+$('f-c').value||0,f:+$('f-f').value||0,g:'Meals'});
+  ['f-name','f-serv','f-k','f-p','f-c','f-f'].forEach(id=>$(id).value='');
+  save(); renderTiles();
+};
+$('t-save').onclick=()=>{
+  S.targets.k=+$('t-k').value||2800; S.targets.p=+$('t-p').value||120;
+  $('tl-label').textContent=S.targets.k; save(); renderGauge(); renderWeek();
+};
+$('w-save').onclick=()=>{
+  const kg=+$('w-kg').value,d=$('w-date').value||todayKey();
+  if(!kg){$('w-kg').focus();return}
+  S.weights=S.weights.filter(x=>x.d!==d); S.weights.push({d,kg});
+  $('w-kg').value=''; save(); renderWeights();
+};
+
+$('export').onclick=exportData;
+load();
+</script>
+</body>
+</html>
