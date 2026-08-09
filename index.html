@@ -163,6 +163,7 @@
       <label class="f"><span class="eyebrow">F</span><input id="f-f" type="number" inputmode="numeric"></label>
     </div>
     <button class="btn" id="f-save">Save to quick add</button>
+    <button class="btn ghost" id="f-log">Log once (don't save)</button>
   </details>
 </section>
 
@@ -178,7 +179,7 @@
   </details>
 </section>
 
-<div style="text-align:center;padding:16px 18px 4px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--slate-2)">UPDATED 4 AUG · CHICKEN SALAD</div>
+<div style="text-align:center;padding:16px 18px 4px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--slate-2)">BUILD 4 · LOG-ONCE</div>
 
 <script>
 const KEY='intake:v2';
@@ -493,6 +494,13 @@ $('f-save').onclick=()=>{
   S.library.unshift({n,s:$('f-serv').value.trim(),k,p:+$('f-p').value||0,c:+$('f-c').value||0,f:+$('f-f').value||0,g:'Meals'});
   ['f-name','f-serv','f-k','f-p','f-c','f-f'].forEach(id=>$(id).value='');
   save(); renderTiles();
+};
+$('f-log').onclick=()=>{
+  // Log the entered food to today only — do NOT add it to the Quick Add tiles.
+  const n=$('f-name').value.trim(),k=+$('f-k').value;
+  if(!n||!k){$('f-name').focus();return}
+  addEntry({n,k,p:+$('f-p').value||0,c:+$('f-c').value||0,f:+$('f-f').value||0});
+  ['f-name','f-serv','f-k','f-p','f-c','f-f'].forEach(id=>$(id).value='');
 };
 $('t-save').onclick=()=>{
   S.targets.k=+$('t-k').value||2800; S.targets.p=+$('t-p').value||120;
