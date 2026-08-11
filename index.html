@@ -124,6 +124,7 @@
   <div class="cats" id="cats"></div>
   <div class="tiles" id="tiles"></div>
   <div class="none" id="no-results" style="display:none">Nothing matches. Add it under “Add a food” below and it becomes a tile.</div>
+  <div style="margin-top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--slate-2)">Tap to log · press and hold to remove</div>
 </section>
 
 <section>
@@ -179,7 +180,7 @@
   </details>
 </section>
 
-<div style="text-align:center;padding:16px 18px 4px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--slate-2)">BUILD 4 · LOG-ONCE</div>
+<div style="text-align:center;padding:16px 18px 4px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--slate-2)">BUILD 5 · REMOVE TILE</div>
 
 <script>
 const KEY='intake:v2';
@@ -422,7 +423,16 @@ function renderTiles(){
     const b=document.createElement('button'); b.className='tile';
     b.innerHTML='<div class="n">'+esc(f.n)+'</div><div class="s">'+esc(f.s||'')+'</div><div class="m">'+f.k+' · '+f.p+'P</div>';
     b.setAttribute('aria-label','Add '+f.n);
-    b.onclick=()=>addEntry(f);
+    // Tap logs the food; press-and-hold (600ms) offers to remove the tile.
+    let timer=null, held=false;
+    const startHold=()=>{held=false;timer=setTimeout(()=>{held=true;removeFood(f);},600);};
+    const cancelHold=()=>{if(timer){clearTimeout(timer);timer=null;}};
+    b.addEventListener('pointerdown',startHold);
+    b.addEventListener('pointerup',cancelHold);
+    b.addEventListener('pointercancel',cancelHold);
+    b.addEventListener('pointerleave',cancelHold);
+    b.addEventListener('pointermove',cancelHold);
+    b.onclick=()=>{if(held){held=false;return;}addEntry(f);};
     box.appendChild(b);
   });
 }
@@ -485,6 +495,14 @@ function addEntry(f){
   if(!S.days[k]) S.days[k]=[];
   S.days[k].push({n:f.n,k:+f.k,p:+f.p,c:+f.c,f:+f.f});
   save(); renderGauge(); renderLog(); renderWeek();
+}
+
+function removeFood(f){
+  // Remove a food from Quick Add. Custom foods stay gone; a seed food would
+  // reappear on next load, which is fine — the intent is clearing mistakes.
+  if(typeof confirm==='function' && !confirm('Remove “'+f.n+'” from Quick Add?')) return;
+  S.library=S.library.filter(x=>x!==f);
+  save(); renderTiles();
 }
 
 $('search').oninput=renderTiles;
